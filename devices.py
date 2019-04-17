@@ -117,8 +117,9 @@ class Device(object):
 
 
     def put(self, command, contents):
-        for key in contents.keys():
-            log.info(f'PUT {command}: {key} = {contents[key]}')
+        s = ', '.join([f'{key} = {contents[key]}' for key in contents.keys()])
+        log.info(f'PUT {command}: {s}')
+
         default = {'ClientID': self.clientID,
                    'ClientTransactionID': self.transactionID,
                    }
@@ -181,31 +182,91 @@ class Device(object):
 class Camera(Device):
     def __init__(self, **args):
         Device.__init__(self, 'camera', **args)
+        self.bayeroffsetx = self.get('bayeroffsetx')['Value']
+        self.bayeroffsety = self.get('bayeroffsety')['Value']
+        self.canabort = self.get('canabortexposure')['Value']
+        self.canasymmetricbin = self.get('canasymmetricbin')['Value']
+        self.canfastread = self.get('canfastreadout')['Value']
+        self.cangetcoolerpower = self.get('cangetcoolerpower')['Value']
+        self.canpulseguide = self.get('canpulseguide')['Value']
+        self.cansetccdtemperature = self.get('cansetccdtemperature')['Value']
+        self.canstopexposure = self.get('canstopexposure')['Value']
+        self.exposuremax = self.get('exposuremax')['Value']
+        self.exposuremin = self.get('exposuremin')['Value']
+        self.exposureresolution = self.get('exposureresolution')['Value']
+        self.fullwellcapacity = self.get('fullwellcapacity')['Value']
+        self.gainmax = self.get('gainmax')['Value']
+        self.gainmin = self.get('gainmin')['Value']
+        self.gains = self.get('gains')['Value']
+        self.hasshutter = self.get('hasshutter')['Value']
+        self.maxadu = self.get('maxadu')['Value']
+        self.maxbinx = self.get('maxbinx')['Value']
+        self.maxbiny = self.get('maxbiny')['Value']
 
-    def get_coolerpower(self):
-        return self.get('coolerpower')['Value']
-
-    def get_ccdtemperature(self):
-        return self.get('ccdtemperature')['Value']
-
-    def get_binning(self):
+    def binning(self):
         binx = self.get('binx')['Value']
         biny = self.get('biny')['Value']
+        return (binx, biny)
 
     def set_binning(self, binx, biny):
         self.put('binx', {'BinX': binx})
         self.put('biny', {'BinY': biny})
 
-    def get_imagearray(self):
+    def camerastate(self):
+        return self.get('camerastate')['Value']
+
+    def camerasize(self):
+        sx = self.get('cameraxsize')['Value']
+        sy = self.get('cameraysize')['Value']
+        return (sx, sy)
+
+    def ccdtemperature(self):
+        return self.get('ccdtemperature')['Value']
+
+    def cooleron(self):
+        return self.get('cooleron')['Value']
+
+    def set_cooleron(self, on=True):
+        self.put('cooleron', {'CoolerOn': on})
+
+    def coolerpower(self):
+        if self.cangetcoolerpower is True:
+            return self.get('coolerpower')['Value']
+
+    def electronsperadu(self):
+        return self.get('electronsperadu')['Value']
+
+    def fastreadout(self):
+        return self.get('fastreadout')['Value']
+
+    def set_fastreadout(self, fast=True):
+        self.put('fastreadout', {'FastReadout': fast})
+
+    def gain(self):
+        return self.get('gain')['Value']
+
+    def set_gain(self, gain):
+        self.put('gain', {'Gain': gain})
+
+    def heatsinktemperature(self):
+        return self.get('heatsinktemperature')['Value']
+
+    def imagearray(self):
         log.info('Getting image data')
         data = np.array(self.get('imagearray', quiet=True)['Value'])
+        log.info(f'Got data of shape {data.shape}')
+        return data
+
+    def imagearrayvariant(self):
+        log.info('Getting image data')
+        data = np.array(self.get('imagearrayvariant', quiet=True)['Value'])
         log.info(f'Got data of shape {data.shape}')
         return data
 
     def imageready(self):
         return self.get('imageready', quiet=True)['Value']
 
-    def waitfor_imageready(self, exptime=1, sleep=0.5):
+    def waitfor_imageready(self, exptime=1, sleep=1):
         ready = self.imageready()
         if ready is False:
             log.info('Waiting for image')
@@ -215,13 +276,25 @@ class Camera(Device):
         if ready is True:
             log.info('Image ready for download')
 
+    def ispulseguiding(self):
+        return self.get('ispulseguiding', quiet=True)['Value']
+
+    def lastexposureduration(self):
+        return self.get('lastexposureduration', quiet=True)['Value']
+
+    def lastexposuretime(self):
+        return self.get('lastexposuretime', quiet=True)['Value']
+
+
+
+
     def startexposure(self, exptime, light=True):
         return self.put('startexposure', {'Duration': exptime, 'Light': light})
 
 ##-------------------------------------------------------------------------
-## Main Program
+## Command Line Test Program
 ##-------------------------------------------------------------------------
-def main():
+if __name__ == '__main__':
     IP = '10.0.1.103'
     port = 11111
     
@@ -236,21 +309,14 @@ def main():
 #     t.get('ccdtemperature')
 
     c = Camera(IP=IP, port=port)
-    c.get_coolerpower()
-    c.get_ccdtemperature()
-    c.get_binning()
-    c.set_binning(1, 1)
-    c.get_binning()
-    try:
-        c.startexposure(1, light=False)
-    except AlpacaError as e:
-        pass
-    else:
-        c.waitfor_imageready(exptime=1)
-        data = c.get_imagearray()
-    c.put('cooleron', {'CoolerOn': False})
-    c.get_coolerpower()
-
-
-if __name__ == '__main__':
-    main()
+    c.electronsperadu()
+    c.gain()
+#     try:
+#         c.startexposure(1, light=False)
+#     except AlpacaError as e:
+#         pass
+#     else:
+#         c.waitfor_imageready(exptime=1)
+#         data = c.imagearray()
+#     c.put('cooleron', {'CoolerOn': False})
+#     c.coolerpower()
