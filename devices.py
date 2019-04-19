@@ -93,15 +93,16 @@ class Device(object):
         log.debug(f'  ServerTransactionID: {j["ServerTransactionID"]}')
         log.debug(f'  ErrorNumber: {j["ErrorNumber"]}')
         if j["ErrorNumber"] != 0:
+            log.warning(f'GET {command} failed')
             if type(j["ErrorMessage"]) == str:
                 lines = j["ErrorMessage"].split('\n')
-                log.error(f'  ErrorMessage: {lines[0]}')
+                log.warning(f'  ErrorMessage: {lines[0]}')
                 for v in lines[1:]:
-                    log.error(f'                {v}')
+                    log.warning(f'                {v}')
             else:
-                log.error(f'  ErrorMessage: {j["ErrorMessage"]}')
+                log.warning(f'  ErrorMessage: {j["ErrorMessage"]}')
 
-        if quiet is False:
+        if quiet is False and j["ErrorNumber"] == 0:
             if type(j["Value"]) == str:
                 lines = j["Value"].split('\n')
                 log.info(f'GET {command}: {lines[0]}')
@@ -131,13 +132,14 @@ class Device(object):
         log.debug(f'  ServerTransactionID: {j["ServerTransactionID"]}')
         log.debug(f'  ErrorNumber: {j["ErrorNumber"]}')
         if j["ErrorNumber"] != 0:
+            log.warning(f'PUT {command}: {s} failed')
             if type(j["ErrorMessage"]) == str:
                 lines = j["ErrorMessage"].split('\n')
-                log.error(f'  ErrorMessage: {lines[0]}')
+                log.warning(f'  ErrorMessage: {lines[0]}')
                 for v in lines[1:]:
-                    log.error(f'                {v}')
+                    log.warning(f'                {v}')
             else:
-                log.error(f'  ErrorMessage: {j["ErrorMessage"]}')
+                log.warning(f'  ErrorMessage: {j["ErrorMessage"]}')
             raise AlpacaError
 
         self.transactionID += 1
@@ -202,6 +204,11 @@ class Camera(Device):
         self.maxadu = self.get('maxadu')['Value']
         self.maxbinx = self.get('maxbinx')['Value']
         self.maxbiny = self.get('maxbiny')['Value']
+        self.pixelsizex = self.get('pixelsizex')['Value']
+        self.pixelsizey = self.get('pixelsizey')['Value']
+        self.readoutmodes = self.get('readoutmodes')['Value']
+        self.sensorname = self.get('sensorname')['Value']
+        self.sensortype = self.get('sensortype')['Value']
 
     def binning(self):
         binx = self.get('binx')['Value']
@@ -272,6 +279,7 @@ class Camera(Device):
             log.info('Waiting for image')
             while ready is False:
                 time.sleep(sleep)
+                self.percentcompleted()
                 ready = self.imageready()
         if ready is True:
             log.info('Image ready for download')
@@ -282,14 +290,61 @@ class Camera(Device):
     def lastexposureduration(self):
         return self.get('lastexposureduration', quiet=True)['Value']
 
-    def lastexposuretime(self):
-        return self.get('lastexposuretime', quiet=True)['Value']
+    def lastexposurestarttime(self):
+        return self.get('lastexposurestarttime', quiet=True)['Value']
 
+    def numx(self):
+        return self.get('numx')['Value']
 
+    def numy(self):
+        return self.get('numy')['Value']
 
+    def set_numx(self, numx):
+        self.put('numx', {'NumX': numx})
+
+    def set_numy(self, numy):
+        self.put('numy', {'NumY': numy})
+
+    def percentcompleted(self):
+        return self.get('percentcompleted')['Value']
+
+    def readoutmode(self):
+        return self.get('readoutmode')['Value']
+
+    def set_readoutmode(self, readoutmode):
+        self.put('readoutmode', {'ReadoutMode': readoutmode})
+
+    def ccdsetpoint(self):
+        return self.get('setccdtemperature')['Value']
+
+    def set_ccdtemperature(self, setccdtemperature):
+        self.put('setccdtemperature', {'SetCCDTemperature': setccdtemperature})
+
+    def startx(self):
+        return self.get('startx')['Value']
+
+    def starty(self):
+        return self.get('starty')['Value']
+
+    def set_startx(self, startx):
+        self.put('startx', {'StartX': startx})
+
+    def set_starty(self, starty):
+        self.put('starty', {'StartY': starty})
+
+    def abortexposure(self):
+        self.put('abortexposure', {})
+
+    def pulseguide(self, direction, duration):
+        # Direction of movement (0 = North, 1 = South, 2 = East, 3 = West)
+        self.put('pulseguide', {'Direction': direction, 'Duration': duration})
 
     def startexposure(self, exptime, light=True):
         return self.put('startexposure', {'Duration': exptime, 'Light': light})
+
+    def stopexposure(self):
+        return self.put('stopexposure', {})
+
 
 ##-------------------------------------------------------------------------
 ## Command Line Test Program
@@ -298,25 +353,18 @@ if __name__ == '__main__':
     IP = '10.0.1.103'
     port = 11111
     
-#     t = Device('camera', IP=IP, port=port)
-#     t.get('coolerpower')
-#     t.get('ccdtemperature')
-#     t.put('setccdtemperature', {'SetCCDTemperature': 5})
-#     t.put('cooleron', {'CoolerOn': True})
-#     sleep(10)
-#     t.get('cooleron')
-#     t.get('coolerpower')
-#     t.get('ccdtemperature')
-
     c = Camera(IP=IP, port=port)
     c.electronsperadu()
     c.gain()
-#     try:
-#         c.startexposure(1, light=False)
-#     except AlpacaError as e:
-#         pass
-#     else:
-#         c.waitfor_imageready(exptime=1)
-#         data = c.imagearray()
-#     c.put('cooleron', {'CoolerOn': False})
-#     c.coolerpower()
+    try:
+        c.startexposure(1, light=False)
+    except AlpacaError as e:
+        pass
+    else:
+        c.waitfor_imageready(exptime=1)
+        data = c.imagearray()
+    c.lastexposureduration()
+    c.lastexposurestarttime()
+    c.coolerpower()
+
+
