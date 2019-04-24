@@ -142,7 +142,7 @@ class Device(object):
                     log.warning(f'                {v}')
             else:
                 log.warning(f'  ErrorMessage: {j["ErrorMessage"]}')
-            raise AlpacaError
+            raise AlpacaError(j["ErrorMessage"])
 
         self.transactionID += 1
         if self.transactionID > 4294967295:
@@ -388,6 +388,24 @@ class Focuser(Device):
     def move(self, position):
         self.put('move', {'Position': position})
 
+##-------------------------------------------------------------------------
+## Filter Wheel Device
+##-------------------------------------------------------------------------
+class FilterWheel(Device):
+    def __init__(self, IP, override_names=None, **args):
+        Device.__init__(self, IP, **args, device='filterwheel')
+        self.focusoffsets = self.get('focusoffsets')['Value']
+        self.names = self.get('names')['Value']
+        if override_names is not None:
+            self.names = override_names
+            log.warning(f'Filter names overridden with: {self.names}')
+
+    def position(self):
+        return self.get('position')['Value']
+
+    def set_position(self, position):
+        self.put('position', {'Position': position})
+
 
 ##-------------------------------------------------------------------------
 ## Command Line Test Program
@@ -410,10 +428,10 @@ if __name__ == '__main__':
     # c.lastexposurestarttime()
     # c.coolerpower()
 
-    f = Focuser(IP=IP, port=port)
-    f.ismoving()
-    f.position()
-    f.tempcomp()
-    f.temperature()
+    # f = Focuser(IP=IP, port=port)
+    # f.ismoving()
+    # f.position()
+    # f.tempcomp()
+    # f.temperature()
 
 
