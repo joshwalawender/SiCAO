@@ -1,8 +1,5 @@
 #!/usr/env/python
 
-## Import General Tools
-import sys
-import os
 import argparse
 import logging
 import random
@@ -183,7 +180,7 @@ class Device(object):
 ##-------------------------------------------------------------------------
 class Camera(Device):
     def __init__(self, **args):
-        Device.__init__(self, 'camera', **args)
+        devices.Device.__init__(self, 'camera', **args)
         self.bayeroffsetx = self.get('bayeroffsetx')['Value']
         self.bayeroffsety = self.get('bayeroffsety')['Value']
         self.canabort = self.get('canabortexposure')['Value']
@@ -337,6 +334,13 @@ class Camera(Device):
 
     def pulseguide(self, direction, duration):
         # Direction of movement (0 = North, 1 = South, 2 = East, 3 = West)
+        if type(direction) == str:
+            numerical_directions = {'N': 0, 'S': 1, 'E': 2, 'W': 3}
+            direction = numerical_directions[direction.upper()]
+        elif type(direction) == int:
+            pass
+        else:
+            return None
         self.put('pulseguide', {'Direction': direction, 'Duration': duration})
 
     def startexposure(self, exptime, light=True):
@@ -347,24 +351,64 @@ class Camera(Device):
 
 
 ##-------------------------------------------------------------------------
+## Focuser Device
+##-------------------------------------------------------------------------
+class Focuser(Device):
+    def __init__(self, **args):
+        Device.__init__(self, 'focuser', **args)
+        self.absolute = self.get('absolute')['Value']
+        self.maxincrement = self.get('maxincrement')['Value']
+        self.maxstep = self.get('maxstep')['Value']
+        self.stepsize = self.get('stepsize')['Value']
+        self.tempcompavailable = self.get('tempcompavailable')['Value']
+
+    def ismoving(self):
+        return self.get('ismoving')['Value']
+
+    def position(self):
+        return self.get('position')['Value']
+
+    def tempcomp(self):
+        return self.get('tempcomp')['Value']
+
+    def set_tempcomp(self, tempcomp):
+        self.put('tempcomp', {'TempComp': tempcomp})
+
+    def temperature(self):
+        return self.get('temperature')['Value']
+
+    def halt(self):
+        self.put('halt', {})
+
+    def move(self, position):
+        self.put('move', {'Position': position})
+
+
+##-------------------------------------------------------------------------
 ## Command Line Test Program
 ##-------------------------------------------------------------------------
 if __name__ == '__main__':
     IP = '10.0.1.103'
     port = 11111
     
-    c = Camera(IP=IP, port=port)
-    c.electronsperadu()
-    c.gain()
-    try:
-        c.startexposure(1, light=False)
-    except AlpacaError as e:
-        pass
-    else:
-        c.waitfor_imageready(exptime=1)
-        data = c.imagearray()
-    c.lastexposureduration()
-    c.lastexposurestarttime()
-    c.coolerpower()
+    # c = Camera(IP=IP, port=port)
+    # c.electronsperadu()
+    # c.gain()
+    # try:
+    #     c.startexposure(1, light=False)
+    # except AlpacaError as e:
+    #     pass
+    # else:
+    #     c.waitfor_imageready(exptime=1)
+    #     data = c.imagearray()
+    # c.lastexposureduration()
+    # c.lastexposurestarttime()
+    # c.coolerpower()
+
+    f = Focuser(IP=IP, port=port)
+    f.ismoving()
+    f.position()
+    f.tempcomp()
+    f.temperature()
 
 
