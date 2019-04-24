@@ -392,16 +392,19 @@ class Focuser(Device):
 ## Filter Wheel Device
 ##-------------------------------------------------------------------------
 class FilterWheel(Device):
-    def __init__(self, IP, override_names=None, **args):
+    def __init__(self, IP, **args):
         Device.__init__(self, IP, **args, device='filterwheel')
         self.focusoffsets = self.get('focusoffsets')['Value']
         self.names = self.get('names')['Value']
-        if override_names is not None:
-            self.names = override_names
-            log.warning(f'Filter names overridden with: {self.names}')
 
     def position(self):
-        return self.get('position')['Value']
+        pos = self.get('position')['Value']
+        if pos == -1:
+            name = 'moving'
+        else:
+            name = self.names[pos]
+        log.info(f'Position Name = "{name}"')
+        return pos, name
 
     def set_position(self, position):
         self.put('position', {'Position': position})
@@ -427,6 +430,8 @@ if __name__ == '__main__':
     # c.lastexposureduration()
     # c.lastexposurestarttime()
     # c.coolerpower()
+
+
 
     # f = Focuser(IP=IP, port=port)
     # f.ismoving()
