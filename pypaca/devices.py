@@ -59,8 +59,13 @@ class AlpacaError(Exception):
 ## Abstract Alpaca Device
 ##-------------------------------------------------------------------------
 class Device(object):
-    def __init__(self, device, device_number=0, IP='127.0.0.1', port=11111,
+    def __init__(self, IP, port=11111, device=None, device_number=0,
                  ClientID=None, ClientTransactionID=0):
+        alpaca_devices = ['switch', 'safetymonitor', 'dome', 'camera',
+                          'observingconditions', 'filterwheel', 'focuser',
+                          'rotator', 'telescope']
+        if device not in alpaca_devices:
+            raise AlpacaError(f'Device "{device}" not in standard Alpaca device list')
         if ClientID is None:
             self.clientID = int(random.random() * 65535)
         else:
@@ -179,8 +184,8 @@ class Device(object):
 ## Camera Device
 ##-------------------------------------------------------------------------
 class Camera(Device):
-    def __init__(self, **args):
-        devices.Device.__init__(self, 'camera', **args)
+    def __init__(self, IP, **args):
+        Device.__init__(self, IP, **args, device='camera')
         self.bayeroffsetx = self.get('bayeroffsetx')['Value']
         self.bayeroffsety = self.get('bayeroffsety')['Value']
         self.canabort = self.get('canabortexposure')['Value']
@@ -354,8 +359,8 @@ class Camera(Device):
 ## Focuser Device
 ##-------------------------------------------------------------------------
 class Focuser(Device):
-    def __init__(self, **args):
-        Device.__init__(self, 'focuser', **args)
+    def __init__(self, IP, **args):
+        Device.__init__(self, IP, **args, device='focuser')
         self.absolute = self.get('absolute')['Value']
         self.maxincrement = self.get('maxincrement')['Value']
         self.maxstep = self.get('maxstep')['Value']
