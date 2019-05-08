@@ -89,41 +89,53 @@ class Device(object):
                    'ClientTransactionID': self.transactionID,
                    }
         r = requests.get(self.url + command, data=payload)
+        if r.status_code == 200:
+            try:
+                j = json.loads(r.text)
+                log.debug(f'  ClientTransactionID: {j["ClientTransactionID"]}')
+                log.debug(f'  ServerTransactionID: {j["ServerTransactionID"]}')
+                log.debug(f'  ErrorNumber: {j["ErrorNumber"]}')
+                if j["ErrorNumber"] != 0:
+                    log.warning(f'GET {command} failed')
+                    if type(j["ErrorMessage"]) == str:
+                        lines = j["ErrorMessage"].split('\n')
+                        log.warning(f'  ErrorMessage: {lines[0]}')
+                        for v in lines[1:]:
+                            log.warning(f'                {v}')
+                    else:
+                        log.warning(f'  ErrorMessage: {j["ErrorMessage"]}')
 
-        try:
-            j = json.loads(r.text)
-            log.debug(f'  ClientTransactionID: {j["ClientTransactionID"]}')
-            log.debug(f'  ServerTransactionID: {j["ServerTransactionID"]}')
-            log.debug(f'  ErrorNumber: {j["ErrorNumber"]}')
-            if j["ErrorNumber"] != 0:
-                log.warning(f'GET {command} failed')
-                if type(j["ErrorMessage"]) == str:
-                    lines = j["ErrorMessage"].split('\n')
-                    log.warning(f'  ErrorMessage: {lines[0]}')
-                    for v in lines[1:]:
-                        log.warning(f'                {v}')
-                else:
-                    log.warning(f'  ErrorMessage: {j["ErrorMessage"]}')
+                if quiet is False and j["ErrorNumber"] == 0:
+                    if type(j["Value"]) == str:
+                        lines = j["Value"].split('\n')
+                        log.info(f'GET {command}: {lines[0]}')
+                        for v in lines[1:]:
+                            log.info(f'               {v}')
+                    else:
+                        log.info(f'GET {command}: {j["Value"]}')
 
-            if quiet is False and j["ErrorNumber"] == 0:
-                if type(j["Value"]) == str:
-                    lines = j["Value"].split('\n')
-                    log.info(f'GET {command}: {lines[0]}')
-                    for v in lines[1:]:
-                        log.info(f'               {v}')
-                else:
-                    log.info(f'GET {command}: {j["Value"]}')
+                self.transactionID += 1
+                if self.transactionID > 4294967295:
+                    self.transactionID -= 4294967295
+                return j
+            except json.JSONDecodeError as e:
+                log.error(f'GET {command} failed: {e.msg}')
+                return {'Value': None,
+                        'ErrorNumber': -1,
+                        'ErrorMessage': e.msg,
+                       }
+        elif r.status_code == 400:
+            log.error(f'400: Invalid request. "{self.url + command}"')
+            log.error(f'  {r.text}')
+            return {'Value': None}
+        elif r.status_code == 500:
+            log.error(f'500: Unexpected device error')
+            log.error(f'  {r.text}')
+            return {'Value': None}
+        else:
+            log.error(f'{r.status_code}: {r.text}')
+            return {'Value': None}
 
-            self.transactionID += 1
-            if self.transactionID > 4294967295:
-                self.transactionID -= 4294967295
-            return j
-        except json.JSONDecodeError as e:
-            log.error(f'GET {command} failed: {e.msg}')
-            return {'Value': None,
-                    'ErrorNumber': -1,
-                    'ErrorMessage': e.msg,
-                   }
 
     def put(self, command, contents):
         s = ', '.join([f'{key} = {contents[key]}' for key in contents.keys()])
