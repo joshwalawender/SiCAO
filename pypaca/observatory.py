@@ -6,6 +6,7 @@ import yaml
 import datetime
 from time import sleep
 
+import numpy as np
 from astropy.io import fits
 
 from . import log
@@ -239,7 +240,8 @@ class Observatory(object):
                   comment='Focuser temperature (degrees C)')
         return h
 
-    def expose(self, exptime=0, filter='L', imtype='light'):
+    def expose(self, exptime=0, filter='L', imtype='light',
+               filename=None):
         h = self.collect_metadata(pre=True)
         log.info(f'Starting {exptime} second exposure')
         self.Camera1.startexposure(exptime)
@@ -247,8 +249,20 @@ class Observatory(object):
             sleep(exptime-1)
         data = self.Camera1.waitfor_and_getimage()
         h += self.collect_metadata()
+        if data.shape[0] > data.shape[1]:
+            # Rotate data to long edge horizontal for display if needed
+            data = np.rot90(data)
         hdu = fits.PrimaryHDU(data=data, header=h)
-        return hdu
+        if filename is None:
+            return hdu
+        try:
+            fp = Path(filename).expanduser()
+            log.info(f'Writing file to {fp}')
+            hdu.writeto(fp)
+        except:
+            log.error(f'Failed to write file to {fp}')
+        finally:
+            return hdu
 
 
 if __name__ == '__main__':
