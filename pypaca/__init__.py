@@ -1,4 +1,4 @@
-verbose = True
+verbose = False
 
 ##-------------------------------------------------------------------------
 ## Create logger object
