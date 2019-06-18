@@ -7,7 +7,7 @@ import json
 
 import numpy as np
 
-from . import log
+from . import log, AlpacaError
 
 ##-------------------------------------------------------------------------
 ## Abstract Alpaca Device
