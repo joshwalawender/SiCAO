@@ -247,16 +247,28 @@ class Camera(Device):
     def imageready(self):
         return self.get('imageready', quiet=True)['Value']
 
-    def waitfor_imageready(self, exptime=1, sleep=1):
+    def waitfor_imageready(self, sleep=1):
         ready = self.imageready()
         if ready is False:
             log.info('Waiting for image')
             while ready is False:
                 time.sleep(sleep)
-                self.percentcompleted()
+#                 self.percentcompleted()
                 ready = self.imageready()
         if ready is True:
             log.info('Image ready for download')
+
+    def waitfor_and_getimage(self, sleep=1):
+        ready = self.imageready()
+        if ready is False:
+            log.info('Waiting for image')
+            while ready is False:
+                time.sleep(sleep)
+#                 self.percentcompleted()
+                ready = self.imageready()
+        if ready is True:
+            log.info('Image ready for download')
+            return self.imagearray()
 
     def ispulseguiding(self):
         return self.get('ispulseguiding', quiet=True)['Value']
