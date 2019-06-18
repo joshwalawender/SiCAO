@@ -30,3 +30,4 @@ class AlpacaError(Exception):
     pass
 
 from . import devices
+from . import observatory

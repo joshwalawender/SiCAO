@@ -2,6 +2,7 @@
 
 ## Import General Tools
 from pathlib import Path
+import yaml
 
 from . import log
 from . import devices
@@ -48,43 +49,54 @@ class Sequence(object):
 ##-------------------------------------------------------------------------
 ## Observatory
 ##-------------------------------------------------------------------------
-class observatory(object):
-    def connect_camera1(self, *args, **kwargs):
-        """Camera1 is assumed to the main imaging camera."""
-        self.camera1 = devices.Camera(*args, **kwargs)
+class Observatory(object):
+    def __init__(self, configfile=None):
 
-    def connect_filterwheel1(self, *args, **kwargs):
-        """FilterWheel1 is assumed to associated with the main imaging camera.
-        """
-        self.filterwheel1 = devices.FilterWheel(*args, **kwargs)
+        # Initialize devices to None
+        self.Camera1 = None      # main imaging camera
+        self.FilterWheel1 = None # filter wheel for main imaging camera
+        self.Focuser1 = None     # focuser for main imaging camera
+        self.Camera2 = None      # guide camera
+        self.FilterWheel2 = None # filter wheel for guide camera
+        self.Focuser2 = None     # focuser for guide camera
+        self.Telescope == None   # telescope (aka mount)
 
-    def connect_focuser1(self, *args, **kwargs):
-        """Focuser1 is assumed to the focuser for the main imaging camera."""
-        self.focuser1 = devices.Focuser(*args, **kwargs)
-
-    def connect_camera2(self, *args, **kwargs):
-        """Camera2 is assumed to the guide camera."""
-        self.camera2 = devices.Camera(*args, **kwargs)
-
-    def connect_filterwheel2(self, *args, **kwargs):
-        """FilterWheel2 is assumed to associated with the guide camera."""
-        self.filterwheel1 = devices.FilterWheel(*args, **kwargs)
-
-    def connect_focuser2(self, *args, **kwargs):
-        """Focuser2 is assumed to the focuser for the guide camera."""
-        self.focuser2 = devices.Focuser(*args, **kwargs)
-
-    def connect_telescope(self, *args, **kwargs):
-        """Telescope (mount) on which the other devices ride."""
-        self.telescope = devices.Telescope(*args, **kwargs)
+        # Load configuration
+        if configfile is not None:
+            self.load_config(configfile)
+        else:
+            self.load_config('~/git/pypaca/pypaca/test.yaml')
 
     def load_config(self, file):
-        with open('test.yaml', 'r') as f:
+        file = Path(file).expanduser()
+        with open(file, 'r') as f:
             contents = f.read()
             self.config = yaml.safe_load(contents)
 
-    def acquire_image(self, conf):
-        """Acquire a single image with the given characteristics.
+    def connect_to(self, device):
+        """Generic connection method"""
+        devtype = device[:-1] if device[-1] in ['1', '2'] else device
+        setattr(self, device, getattr(devices, devtype)(**self.config[device]))
+
+    def connect_all(self):
+        """Connect to all devices"""
+        for key, value in self.config:
+            devtype = key[:-1] if key[-1] in ['1', '2'] else key
+            if devtype in ['Camera', 'FilterWheel', 'Focuser', 'Telescope']:
+                self.connect_to(key)
+
+    def collect_metadata(self):
+        """Collect metadata from connected devices.
+        
+        Telescope: RA, DEC, alt, az, airmass, name, focal length, aperture
+        Camera1: exposure time
+        FilterWheel1: filter
+        Focuser1: position, temperature
+        Camera2: exposure time
+        FilterWheel2: filter
+        Focuser2: position, temperature
+        Observatory: config, sequence info, frame ID, obstype
+        Other: UT time, software version
         """
         pass
 

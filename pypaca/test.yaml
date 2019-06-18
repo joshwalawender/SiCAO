@@ -1,8 +1,28 @@
-- Device Number: 0
+Camera1:
+  device_number: 0
   IP: 192.168.1.1
   port: 11111
-  type: Telescope
-- Device Number: 0
+FilterWheel1:
+  device_number: 0
   IP: 192.168.1.1
   port: 11111
-  type: Telescope
+Focuser1:
+  device_number: 0
+  IP: 192.168.1.1
+  port: 11111
+Camera2:
+  device_number: 1
+  IP: 192.168.1.1
+  port: 11111
+FilterWheel2:
+  device_number: 1
+  IP: 192.168.1.1
+  port: 11111
+Focuser2:
+  device_number: 1
+  IP: 192.168.1.1
+  port: 11111
+Telescope:
+  device_number: 0
+  IP: 192.168.1.1
+  port: 11111
