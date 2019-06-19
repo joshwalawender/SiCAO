@@ -391,7 +391,11 @@ class FilterWheel(Device):
         return pos, name
 
     def set_position(self, position):
-        self.put('position', {'Position': position})
+        if type(position) == int:
+            self.put('position', {'Position': position})
+        elif position in self.names:
+            posint = self.names.index(position)
+            self.put('position', {'Position': posint})
 
 
 ##-------------------------------------------------------------------------
