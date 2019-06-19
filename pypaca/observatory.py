@@ -56,26 +56,42 @@ class Observatory(object):
         self.Focuser2 = None     # focuser for guide camera
         self.Telescope = None   # telescope (aka mount)
 
+        self.imtypes_light = ['light', 'twiflat', 'sky', 'domeflat']
+        self.imtypes_dark = ['bias', 'dark']
+        self.imtypes = self.imtypes_light.extend(self.imtypes_dark)
+
+        self.targname = ''
+
         # Load configuration
         if configfile is not None:
             self.load_config(configfile)
         else:
             self.load_config('~/git/pypaca/pypaca/test.yaml')
 
+    def is_light(self, imtype):
+        if imtype.lower() in self.imtypes_light:
+            return True
+        elif imtype.lower() in self.imtypes_dark:
+            return False
+        else:
+            raise ObservatoryError(f"{imtype} is not a valid image type")
+
     def load_config(self, file):
         file = Path(file).expanduser()
         with open(file, 'r') as f:
             contents = f.read()
-            self.config = yaml.safe_load(contents)
+            config = yaml.safe_load(contents)
+        self.devices = config['Devices']
+        self.options = config['Options']
 
     def connect_to(self, device):
         """Generic connection method"""
         devtype = device[:-1] if device[-1] in ['1', '2'] else device
-        setattr(self, device, getattr(devices, devtype)(**self.config[device]))
+        setattr(self, device, getattr(devices, devtype)(**self.devices[device]))
 
     def connect_all(self):
         """Connect to all devices"""
-        for key in self.config.keys():
+        for key in self.devices.keys():
             devtype = key[:-1] if key[-1] in ['1', '2'] else key
             if devtype in ['Camera', 'FilterWheel', 'Focuser', 'Telescope']:
                 self.connect_to(key)
@@ -94,31 +110,35 @@ class Observatory(object):
         now = datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%S.%f')
         if pre is True:
             log.info('Collecting pre-exposure metadata')
+            # General
             h.set('UT1', value=now,
                   comment='Computer UT at start of exposure')
+            h.set('TARGNAME', value=self.targname,
+                  comment='Target name')
             # Telescope
-            h.set('ALT1', value=self.Telescope.altitude(),
+            h.set('ALT0', value=self.Telescope.altitude(),
                   comment='Telescope altitude (deg) at start of exposure')
-            h.set('AZ1', value=self.Telescope.azimuth(),
+            h.set('AZ0', value=self.Telescope.azimuth(),
                   comment='Telescope azimuth (deg) at start of exposure')
-            h.set('DEC1', value=self.Telescope.declination(),
+            h.set('DEC0', value=self.Telescope.declination(),
                   comment='Telescope DEC (deg) at start of exposure')
-            h.set('DECRATE1', value=self.Telescope.declinationrate(),
+            h.set('DECRATE0', value=self.Telescope.declinationrate(),
                   comment='Telescope DEC rate (unit?) at start of exposure')
-            h.set('RA1', value=self.Telescope.rightascension(),
+            h.set('RA0', value=self.Telescope.rightascension(),
                   comment='Telescope RA (hours) at start of exposure')
-            h.set('RARATE1', value=self.Telescope.rightascensionrate(),
+            h.set('RARATE0', value=self.Telescope.rightascensionrate(),
                   comment='Telescope RA rate (unit?) at start of exposure')
-            h.set('LST1', value=self.Telescope.siderealtime(),
+            h.set('LST0', value=self.Telescope.siderealtime(),
                   comment='Sidereal time (hours) at start of exposure')
-            h.set('TARGDEC1', value=self.Telescope.targetdeclination(),
+            h.set('TARGDEC0', value=self.Telescope.targetdeclination(),
                   comment='Target DEC (deg) at start of exposure')
-            h.set('TARGRA1', value=self.Telescope.targetrightascension(),
+            h.set('TARGRA0', value=self.Telescope.targetrightascension(),
                   comment='Target RA (hours) at start of exposure')
-            h.set('TELUT1', value=self.Telescope.utcdate(),
+            h.set('TELUT0', value=self.Telescope.utcdate(),
                   comment='Telescope UT at start of exposure')
         if pre is False:
             log.info('Collecting post-exposure metadata')
+            # General
             h.set('UT', value=now,
                   comment='Computer UT at end of exposure')
             # Telescope
@@ -232,9 +252,20 @@ class Observatory(object):
 
     def expose(self, exptime=0, filter='L', imtype='light',
                filename=None):
+        """Method to take an exposure with the specified parameters and write
+        a FITS file.
+        """
+        if self.is_light(imtype) is False\
+           and self.options['filter_as_dark'] is not None:
+            # Override filter if imtype specifies dark
+            self.FilterWheel1.set_position(self.options['filter_as_dark'])
+        else:
+            # Set filter
+            self.FilterWheel1.set_position(filter)
         h = self.collect_metadata(pre=True)
+        h.set('IMTYPE', imtype, 'Image Type')
         log.info(f'Starting {exptime} second exposure')
-        self.Camera1.startexposure(exptime)
+        self.Camera1.startexposure(exptime, light=self.is_light(imtype))
         if exptime > 1:
             sleep(exptime-1)
         data = self.Camera1.waitfor_and_getimage()

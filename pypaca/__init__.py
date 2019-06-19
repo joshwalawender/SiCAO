@@ -29,5 +29,11 @@ log.addHandler(LogConsoleHandler)
 class AlpacaError(Exception):
     pass
 
-from . import devices
-from . import observatory
+class ObservatoryError(Exception):
+    pass
+
+##-------------------------------------------------------------------------
+## Import Local
+##-------------------------------------------------------------------------
+from .devices import Focuser, FilterWheel, Telescope, Camera
+from .observatory import Observatory, Sequence

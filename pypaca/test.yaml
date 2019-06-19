@@ -1,28 +1,31 @@
-Camera1:
-  device_number: 0
-  IP: 10.0.1.104
-  port: 11111
-FilterWheel1:
-  device_number: 0
-  IP: 10.0.1.104
-  port: 11111
-Focuser1:
-  device_number: 0
-  IP: 10.0.1.104
-  port: 11111
-#Camera2:
-#  device_number: 1
-#  IP: 10.0.1.104
-#  port: 11111
-#FilterWheel2:
-#  device_number: 1
-#  IP: 10.0.1.104
-#  port: 11111
-#Focuser2:
-#  device_number: 1
-#  IP: 10.0.1.104
-#  port: 11111
-Telescope:
-  device_number: 0
-  IP: 10.0.1.104
-  port: 11111
+Devices:
+  Telescope:
+    device_number: 0
+    IP: 10.0.1.104
+    port: 11111
+  Camera1:
+    device_number: 0
+    IP: 10.0.1.104
+    port: 11111
+  FilterWheel1:
+    device_number: 0
+    IP: 10.0.1.104
+    port: 11111
+  Focuser1:
+    device_number: 0
+    IP: 10.0.1.104
+    port: 11111
+#  Camera2:
+#   device_number: 1
+#   IP: 10.0.1.104
+#   port: 11111
+#  FilterWheel2:
+#   device_number: 1
+#   IP: 10.0.1.104
+#   port: 11111
+#  Focuser2:
+#   device_number: 1
+#   IP: 10.0.1.104
+#   port: 11111
+Options:
+  filter_as_dark: 'Dark'
