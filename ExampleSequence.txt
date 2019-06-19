@@ -1,0 +1,8 @@
+targname: "M 42"
+table: |
+  imtype exptime filter nexp bin
+  ------ ------- ------ ---- ---
+   light   120.0      R    5 1x1
+   light   120.0      G    5 1x1
+   light   120.0      B    5 1x1
+   light   120.0      L   15 1x1

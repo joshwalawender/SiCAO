@@ -8,47 +8,37 @@ from time import sleep
 
 import numpy as np
 from astropy.io import fits
+from astropy.table import Table
 
-from . import log
-from . import devices
-
-##-------------------------------------------------------------------------
-## Image Configuration
-##-------------------------------------------------------------------------
-class ImageConf(object):
-    """Object which describes a single image to acquire.
-    
-    Properties
-    camera -- Which camera to use.
-    filterwheel -- Which filter wheel to use.
-    filter -- Which filter to use.
-    exptime -- Exposure time in seconds.
-    imtype -- Image type (IRAF like string)
-    sequenceID -- ID of sequence to which this image belongs
-    """
-    def __init__(self, camera=None, filterwheel=None, filter=None,
-                 exptime=None, imtype=None, sequenceID=None):
-        self.camera = camera
-        self.filterwheel = filterwheel
-        self.filter = filter
-        self.exptime = exptime
-        self.imtype = imtype
-        self.sequenceID=sequenceID
+from . import log, devices, AlpacaError, ObservatoryError
 
 
 ##-------------------------------------------------------------------------
 ## Sequence
 ##-------------------------------------------------------------------------
 class Sequence(object):
-    """Object which describes a sequence of images to acquire.
-    
-    Properties
-    images -- List of ImageConf objects
-    dithersize -- Dither size (0 for no dither)
+    """Example Sequence Table:
+    t = Table(names=('imtype', 'exptime', 'filter', 'nexp', 'bin'),
+              dtype=('a20', 'f4', 'a20', 'i4', 'a3'))
+    t.add_row(['light', 120, 'R', 5, '1x1'])
+    t.add_row(['light', 120, 'G', 5, '1x1'])
+    t.add_row(['light', 120, 'B', 5, '1x1'])
+    t.add_row(['light', 120, 'L', 15, '1x1'])
+    t.write('ExampleSequence.txt', format='ascii.fixed_width_two_line')
     """
-    def __init__(self, images=None, dithersize=0):
-        self.images = images
-        self.dithersize = dithersize
+    def read(self, file):
+        file = Path(file).expanduser()
+        with open(file, 'r') as f:
+            info = yaml.safe_load(f.read())
+
+        for key in info.keys():
+            if key == 'table':
+                self.table = Table.read(info['table'],
+                                        format='ascii.fixed_width_two_line')
+            else:
+                setattr(self, key, info[key])
+
+
 
 
 ##-------------------------------------------------------------------------
