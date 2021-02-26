@@ -1,8 +1,4 @@
-import random
-import time
 import logging
-import requests
-import json
 
 import numpy as np
 
