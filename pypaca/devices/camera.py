@@ -1,22 +1,45 @@
 import random
 import time
-
+from datetime import datetime
 import requests
 import json
+import logging
 
 import numpy as np
+from astropy.io import fits
 
-from . import Device, AlpacaDeviceError
+
+from . import AlpacaDevice, AlpacaDeviceError
 
 
 ##-------------------------------------------------------------------------
-## Camera Device
+## AlpacaCamera Device
 ##-------------------------------------------------------------------------
-class Camera(Device):
-    def __init__(self, IP, **args):
-        Device.__init__(self, IP, **args, device='camera')
-        self.bayeroffsetx = self.get('bayeroffsetx')['Value']
-        self.bayeroffsety = self.get('bayeroffsety')['Value']
+class Camera(AlpacaDevice):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs, device='camera')
+        # Initialize Properties
+        self.exptime = 0
+
+        # Populate fixed header for all exposures
+        self.fixed_header = fits.Header()
+        self.fixed_header['BAYROFFX'] = (self.get('bayeroffsetx')['Value'],
+                                         'Bayer Offset X')
+        self.fixed_header['BAYROFFY'] = (self.get('bayeroffsety')['Value'],
+                                         'Bayer Offset Y')
+        self.fixed_header['FULLWELL'] = (self.get('fullwellcapacity')['Value'],
+                                         'Full Well Capcity')
+        self.fixed_header['PIXSIZEX'] = (self.get('pixelsizex')['Value'],
+                                         'Pixel Size X')
+        self.fixed_header['PIXSIZEY'] = (self.get('pixelsizey')['Value'],
+                                         'Pixel Size Y')
+        self.fixed_header['SENSNAME'] = (self.get('sensorname')['Value'],
+                                         'Sensor Name')
+        self.fixed_header['SENSTYPE'] = (self.get('sensortype')['Value'],
+                                         'Sensor Type')
+        self.fixed_header['EXPTIME'] = (self.exptime, 'Exposure Time (sec)')
+
+        # Alpaca Capabilities
         self.canabort = self.get('canabortexposure')['Value']
         self.canasymmetricbin = self.get('canasymmetricbin')['Value']
         self.canfastread = self.get('canfastreadout')['Value']
@@ -27,7 +50,6 @@ class Camera(Device):
         self.exposuremax = self.get('exposuremax')['Value']
         self.exposuremin = self.get('exposuremin')['Value']
         self.exposureresolution = self.get('exposureresolution')['Value']
-        self.fullwellcapacity = self.get('fullwellcapacity')['Value']
         self.gainmax = self.get('gainmax')['Value']
         self.gainmin = self.get('gainmin')['Value']
         self.gains = self.get('gains')['Value']
@@ -35,12 +57,58 @@ class Camera(Device):
         self.maxadu = self.get('maxadu')['Value']
         self.maxbinx = self.get('maxbinx')['Value']
         self.maxbiny = self.get('maxbiny')['Value']
-        self.pixelsizex = self.get('pixelsizex')['Value']
-        self.pixelsizey = self.get('pixelsizey')['Value']
         self.readoutmodes = self.get('readoutmodes')['Value']
-        self.sensorname = self.get('sensorname')['Value']
-        self.sensortype = self.get('sensortype')['Value']
 
+
+    ##-------------------------------------------------------------------------
+    ## Required Methods for ObservatoryControlSystem
+    ##-------------------------------------------------------------------------
+    def set_exptime(self, exptime):
+        self.exptime = exptime
+        self.fixed_header['EXPTIME'] = (self.exptime, 'Exposure Time (sec)')
+
+
+    def _collect_preexposure_header(self):
+        h = fits.Header()
+        h['EXPBEGIN'] = (datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f'),
+                         'UTC of Exposure Start')
+        return h
+
+
+    def _collect_postexposure_header(self):
+        h = fits.Header()
+        h['EXPEND'] = (datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f'),
+                       'UTC of Exposure End')
+        return h
+
+
+    def expose(self, light=True):
+        pre_header = self._collect_preexposure_header()
+        self.startexposure(self.exptime, light=light)
+        self.waitfor_imageready()
+        post_header = self._collect_postexposure_header()
+        data = self.imagearray()
+        header = self.fixed_header + pre_header + post_header
+        hdu = fits.PrimaryHDU(data=data, header=header)
+        return fits.HDUList([hdu])
+
+
+    def expose_dark(self):
+        return self.expose(light=False)
+
+
+    def set_window(self, inputstr):
+        xstr, ystr = inputstr.split(',')
+        x1, x2 = xstr.split(':')
+        y1, y2 = ystr.split(':')
+        self.detector.set_startx(int(x1))
+        self.detector.set_starty(int(y1))
+        self.detector.set_numx(int(x2)-int(x1))
+        self.detector.set_numy(int(y2)-int(y1))
+
+    ##-------------------------------------------------------------------------
+    ## Alpaca Methods
+    ##-------------------------------------------------------------------------
     def binning(self):
         binx = self.get('binx')['Value']
         biny = self.get('biny')['Value']
@@ -90,15 +158,15 @@ class Camera(Device):
         return self.get('heatsinktemperature')['Value']
 
     def imagearray(self):
-        log.info('Getting image data')
+        self.log('Getting image data')
         data = np.array(self.get('imagearray', quiet=True)['Value'])
-        log.info(f'Got data of shape {data.shape}')
+        self.log(f'Got data of shape {data.shape}')
         return data
 
     def imagearrayvariant(self):
-        log.info('Getting image data')
+        self.log('Getting image data')
         data = np.array(self.get('imagearrayvariant', quiet=True)['Value'])
-        log.info(f'Got data of shape {data.shape}')
+        self.log(f'Got data of shape {data.shape}')
         return data
 
     def imageready(self):
@@ -107,24 +175,24 @@ class Camera(Device):
     def waitfor_imageready(self, sleep=1):
         ready = self.imageready()
         if ready is False:
-            log.info('Waiting for image')
+            self.log('Waiting for image')
             while ready is False:
                 time.sleep(sleep)
 #                 self.percentcompleted()
                 ready = self.imageready()
         if ready is True:
-            log.info('Image ready for download')
+            self.log('Image ready for download', level=logging.DEBUG)
 
     def waitfor_and_getimage(self, sleep=1):
         ready = self.imageready()
         if ready is False:
-            log.info('Waiting for image')
+            self.log('Waiting for image')
             while ready is False:
                 time.sleep(sleep)
 #                 self.percentcompleted()
                 ready = self.imageready()
         if ready is True:
-            log.info('Image ready for download')
+            self.log('Image ready for download')
             return self.imagearray()
 
     def ispulseguiding(self):

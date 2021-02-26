@@ -1,21 +1,21 @@
 import random
 import time
-
 import requests
 import json
+import logging
 
 import numpy as np
 
-from . import Device, AlpacaDeviceError
+from . import AlpacaDevice, AlpacaDeviceError
 
 
 
 ##-------------------------------------------------------------------------
 ## Filter Wheel Device
 ##-------------------------------------------------------------------------
-class FilterWheel(Device):
-    def __init__(self, IP, **args):
-        Device.__init__(self, IP, **args, device='filterwheel')
+class FilterWheel(AlpacaDevice):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs, device='filterwheel')
         self.focusoffsets = self.get('focusoffsets')['Value']
         self.names = self.get('names')['Value']
 
@@ -25,7 +25,7 @@ class FilterWheel(Device):
             name = 'moving'
         else:
             name = self.names[pos]
-        log.info(f'Position Name = "{name}"')
+        self.log(f'Position Name = "{name}"')
         return pos, name
 
     def set_position(self, position):
@@ -34,4 +34,3 @@ class FilterWheel(Device):
         elif position in self.names:
             posint = self.names.index(position)
             self.put('position', {'Position': posint})
-

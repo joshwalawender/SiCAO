@@ -1,20 +1,20 @@
 import random
 import time
-
+import logging
 import requests
 import json
 
 import numpy as np
 
-from . import Device, AlpacaDeviceError
+from . import AlpacaDevice, AlpacaDeviceError
 
 
 ##-------------------------------------------------------------------------
 ## Focuser Device
 ##-------------------------------------------------------------------------
-class Focuser(Device):
-    def __init__(self, IP, **args):
-        Device.__init__(self, IP, **args, device='focuser')
+class Focuser(AlpacaDevice):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs, device='focuser')
         self.absolute = self.get('absolute')['Value']
         self.maxincrement = self.get('maxincrement')['Value']
         self.maxstep = self.get('maxstep')['Value']

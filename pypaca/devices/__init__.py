@@ -1,20 +1,20 @@
 import random
 import requests
 import json
+import logging
 
 import numpy as np
 
 
-class AlpacaDeviceError(Exception):
-    pass
+class AlpacaDeviceError(Exception): pass
 
 
 ##-------------------------------------------------------------------------
 ## Abstract Alpaca Device
 ##-------------------------------------------------------------------------
-class Device(object):
-    def __init__(self, IP, port=11111, device=None, device_number=0,
-                 ClientID=None, ClientTransactionID=0):
+class AlpacaDevice(object):
+    def __init__(self, IP='localhost', port=11111, device=None, device_number=0,
+                 ClientID=None, ClientTransactionID=0, logger=None):
         alpaca_devices = ['switch', 'safetymonitor', 'dome', 'camera',
                           'observingconditions', 'filterwheel', 'focuser',
                           'rotator', 'telescope']
@@ -29,7 +29,9 @@ class Device(object):
         self.IP = IP
         self.port = port
         self.device_number = device_number
+        self.logger = logger
         self.url = f"http://{IP}:{port}/api/v1/{self.device}/{self.device_number}/"
+        self.log(f'URL: {self.url}', level=logging.DEBUG)
         self.name = self.get_name()
         self.description = self.get_description()
         self.driverinfo = self.get_driverinfo()
@@ -37,8 +39,12 @@ class Device(object):
         self.supportedactions = self.get_supportedactions()
 
 
+    def log(self, msg, level=logging.INFO):
+        if self.logger: self.logger.log(level, f"{self.device:>15s}: {msg}")
+
+
     def get(self, command, quiet=False):
-        log.debug(f'GET {command}')
+        self.log(f'GET {command}', level=logging.DEBUG)
         payload = {'ClientID': self.clientID,
                    'ClientTransactionID': self.transactionID,
                    }
@@ -46,54 +52,54 @@ class Device(object):
         if r.status_code == 200:
             try:
                 j = json.loads(r.text)
-                log.debug(f'  ClientTransactionID: {j["ClientTransactionID"]}')
-                log.debug(f'  ServerTransactionID: {j["ServerTransactionID"]}')
-                log.debug(f'  ErrorNumber: {j["ErrorNumber"]}')
+                self.log(f'  ClientTransactionID: {j["ClientTransactionID"]}', level=logging.DEBUG)
+                self.log(f'  ServerTransactionID: {j["ServerTransactionID"]}', level=logging.DEBUG)
+                self.log(f'  ErrorNumber: {j["ErrorNumber"]}', level=logging.DEBUG)
                 if j["ErrorNumber"] != 0:
-                    log.warning(f'GET {command} failed')
+                    self.log(f'GET {command} failed', level=logging.WARNING)
                     if type(j["ErrorMessage"]) == str:
                         lines = j["ErrorMessage"].split('\n')
-                        log.warning(f'  ErrorMessage: {lines[0]}')
+                        self.log(f'  ErrorMessage: {lines[0]}', level=logging.WARNING)
                         for v in lines[1:]:
-                            log.warning(f'                {v}')
+                            self.log(f'                {v}', level=logging.WARNING)
                     else:
-                        log.warning(f'  ErrorMessage: {j["ErrorMessage"]}')
+                        self.log(f'  ErrorMessage: {j["ErrorMessage"]}', level=logging.WARNING)
 
                 if quiet is False and j["ErrorNumber"] == 0:
                     if type(j["Value"]) == str:
                         lines = j["Value"].split('\n')
-                        log.info(f'GET {command}: {lines[0]}')
+                        self.log(f'GET {command}: {lines[0]}', level=logging.DEBUG)
                         for v in lines[1:]:
-                            log.info(f'               {v}')
+                            self.log(f'               {v}')
                     else:
-                        log.info(f'GET {command}: {j["Value"]}')
+                        self.log(f'GET {command}: {j["Value"]}', level=logging.DEBUG)
 
                 self.transactionID += 1
                 if self.transactionID > 4294967295:
                     self.transactionID -= 4294967295
                 return j
             except json.JSONDecodeError as e:
-                log.error(f'GET {command} failed: {e.msg}')
+                if self.log: self.log(f'GET {command} failed: {e.msg}')
                 return {'Value': None,
                         'ErrorNumber': -1,
                         'ErrorMessage': e.msg,
                        }
         elif r.status_code == 400:
-            log.error(f'400: Invalid request. "{self.url + command}"')
-            log.error(f'  {r.text}')
+            self.log(f'400: Invalid request. "{self.url + command}"', level=logging.ERROR)
+            self.log(f'  {r.text}', level=logging.ERROR)
             return {'Value': None}
         elif r.status_code == 500:
-            log.error(f'500: Unexpected device error')
-            log.error(f'  {r.text}')
+            self.log(f'500: Unexpected device error', level=logging.ERROR)
+            self.log(f'  {r.text}', level=logging.ERROR)
             return {'Value': None}
         else:
-            log.error(f'{r.status_code}: {r.text}')
+            self.log(f'{r.status_code}: {r.text}', level=logging.ERROR)
             return {'Value': None}
 
 
     def put(self, command, contents):
         s = ', '.join([f'{key} = {contents[key]}' for key in contents.keys()])
-        log.info(f'PUT {command}: {s}')
+        self.log(f'PUT {command}: {s}')
 
         default = {'ClientID': self.clientID,
                    'ClientTransactionID': self.transactionID,
@@ -102,18 +108,18 @@ class Device(object):
         r = requests.put(self.url + command, data=payload)
         j = json.loads(r.text)
 
-        log.debug(f'  ClientTransactionID: {j["ClientTransactionID"]}')
-        log.debug(f'  ServerTransactionID: {j["ServerTransactionID"]}')
-        log.debug(f'  ErrorNumber: {j["ErrorNumber"]}')
+        self.log(f'  ClientTransactionID: {j["ClientTransactionID"]}', level=logging.DEBUG)
+        self.log(f'  ServerTransactionID: {j["ServerTransactionID"]}', level=logging.DEBUG)
+        self.log(f'  ErrorNumber: {j["ErrorNumber"]}', level=logging.DEBUG)
         if j["ErrorNumber"] != 0:
-            log.warning(f'PUT {command}: {s} failed')
+            self.log(f'PUT {command}: {s} failed', level=logging.WARNING)
             if type(j["ErrorMessage"]) == str:
                 lines = j["ErrorMessage"].split('\n')
-                log.warning(f'  ErrorMessage: {lines[0]}')
+                self.log(f'  ErrorMessage: {lines[0]}', level=logging.WARNING)
                 for v in lines[1:]:
-                    log.warning(f'                {v}')
+                    self.log(f'                {v}', level=logging.WARNING)
             else:
-                log.warning(f'  ErrorMessage: {j["ErrorMessage"]}')
+                self.log(f'  ErrorMessage: {j["ErrorMessage"]}', level=logging.WARNING)
             raise AlpacaDeviceError(j["ErrorMessage"])
 
         self.transactionID += 1

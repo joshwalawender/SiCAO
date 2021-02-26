@@ -1,20 +1,20 @@
 import random
 import time
-
+import logging
 import requests
 import json
 
 import numpy as np
 
-from . import Device, AlpacaDeviceError
+from . import AlpacaDevice, AlpacaDeviceError
 
 
 ##-------------------------------------------------------------------------
 ## Telescope Device
 ##-------------------------------------------------------------------------
-class Telescope(Device):
-    def __init__(self, IP, **args):
-        Device.__init__(self, IP, **args, device='telescope')
+class Telescope(AlpacaDevice):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs, device='telescope')
         self.alignmentmode = self.get('alignmentmode')['Value']
         self.aperturearea = self.get('aperturearea')['Value']
         self.aperturediameter = self.get('aperturediameter')['Value']
