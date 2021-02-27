@@ -20,7 +20,7 @@ class FilterWheel(AlpacaDevice):
         if pos == -1:
             name = 'moving'
         else:
-            name = self.names[pos]
+            name = self.properties['names'][pos]
         self.log(f'Position Name = "{name}"')
         return pos, name
 
@@ -28,6 +28,6 @@ class FilterWheel(AlpacaDevice):
     def set_position(self, position):
         if type(position) == int:
             self.put('position', {'Position': position})
-        elif position in self.names:
-            posint = self.names.index(position)
+        elif position in self.properties['names']:
+            posint = self.properties['names'].index(position)
             self.put('position', {'Position': posint})

@@ -10,15 +10,14 @@ from . import AlpacaDevice, AlpacaDeviceError
 ##-------------------------------------------------------------------------
 class Telescope(AlpacaDevice):
     def __init__(self, **kwargs):
-        self.property_names = ['alignmentmode', 'aperturearea', 'aperturediameter',
+        self.property_names = ['alignmentmode',
                                'canfindhome', 'canpark', 'canpulseguide',
                                'cansetdeclinationrate', 'cansetguiderates',
                                'cansetpark', 'cansetpierside',
                                'cansetrightascensionrate', 'cansettracking',
                                'canslew', 'canslewaltaz', 'canslewaltazasync',
                                'canslewasync', 'cansync', 'cansyncaltaz',
-                               'equatorialsystem', 'focallength', 'trackingrates',
-                               'canmoveaxis',
+                               'equatorialsystem', 'trackingrates',
                                ]
         super().__init__(**kwargs, device='telescope')
 
@@ -27,6 +26,8 @@ class Telescope(AlpacaDevice):
     ## Required Methods for ObservatoryControlSystem
     ##-------------------------------------------------------------------------
     def slew(self, coord):
+        self.log(f"Slewing to {coord.to_string('hmsdms', sep=':', precision=1)}",
+                 level=logging.INFO)
         self.slewtocoordinates(coord.ra.deg/15, coord.dec.deg)
 
 
@@ -163,6 +164,7 @@ class Telescope(AlpacaDevice):
         self.put('moveaxis', {'MoveAxis': moveaxis})
 
     def park(self):
+        self.log('Parking telescope')
         self.put('park', {})
 
     def pulseguide(self, direction, duration):
@@ -199,6 +201,7 @@ class Telescope(AlpacaDevice):
         self.put('synctotarget', {})
 
     def unpark(self):
+        self.log('Unparking telescope')
         self.put('unpark', {})
 
 

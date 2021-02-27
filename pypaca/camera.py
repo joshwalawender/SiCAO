@@ -19,10 +19,10 @@ class Camera(AlpacaDevice):
                                'canpulseguide', 'cansetccdtemperature',
                                'canstopexposure', 'exposuremax', 'exposuremin',
                                'exposureresolution', 'gainmax', 'gainmin',
-                               'gains', 'hasshutter', 'maxadu', 'maxbinx',
+                               'hasshutter', 'maxadu', 'maxbinx',
                                'maxbiny', 'readoutmodes', 'bayeroffsetx',
                                'bayeroffsety', 'fullwellcapacity', 'pixelsizex',
-                               'pixelsizey', 'sensorname', 'sensortype', 
+                               'pixelsizey', 'sensortype', 
                                ]
         super().__init__(**kwargs, device='camera')
         # Initialize Properties
@@ -40,10 +40,14 @@ class Camera(AlpacaDevice):
                                          'Pixel Size X')
         self.fixed_header['PIXSIZEY'] = (self.properties['pixelsizey'],
                                          'Pixel Size Y')
-        self.fixed_header['SENSNAME'] = (self.properties['sensorname'],
+        self.fixed_header['CAMNAME'] = (self.properties['name'],
                                          'Sensor Name')
         self.fixed_header['SENSTYPE'] = (self.properties['sensortype'],
                                          'Sensor Type')
+        self.fixed_header['ALP-IP'] = (self.IP, 'Alpaca IP')
+        self.fixed_header['ALP-PORT'] = (self.port, 'Alpaca Port')
+        self.fixed_header['ALP-DEVN'] = (self.device_number, 'Alpaca Device Number')
+        self.fixed_header['ALP-URL'] = (self.url, 'Alpaca URL')
 
 
     ##-------------------------------------------------------------------------
@@ -68,13 +72,15 @@ class Camera(AlpacaDevice):
         return h
 
 
-    def expose(self, light=True):
+    def expose(self, light=True, additional_header=None):
         pre_header = self._collect_preexposure_header()
         self.startexposure(self.exptime, light=light)
         self.waitfor_imageready()
         post_header = self._collect_postexposure_header()
         data = self.imagearray()
         header = self.fixed_header + pre_header + post_header
+        if additional_header is not None:
+            header += additional_header
         hdu = fits.PrimaryHDU(data=data, header=header)
         return fits.HDUList([hdu])
 

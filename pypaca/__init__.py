@@ -20,33 +20,33 @@ class AlpacaDevice(object):
                           'rotator', 'telescope']
         if device not in alpaca_devices:
             raise AlpacaDeviceError(f'Device "{device}" not in standard Alpaca device list')
+        self.device = device
+        self.logger = logger
+        self.log(f'Connecting to {device}', level=logging.INFO)
         if ClientID is None:
             self.clientID = int(random.random() * 65535)
         else:
             self.clientID = ClientID
         self.transactionID = ClientTransactionID
-        self.device = device
         self.IP = IP
         self.port = port
         self.device_number = device_number
-        self.logger = logger
         self.url = f"http://{IP}:{port}/api/v1/{self.device}/{self.device_number}/"
         self.log(f'URL: {self.url}', level=logging.DEBUG)
-        self.name = self.get_name()
-        self.description = self.get_description()
-        self.driverinfo = self.get_driverinfo()
-        self.driverversion = self.get_driverversion()
-        self.supportedactions = self.get_supportedactions()
-        self.log(f'Connected to {self.device}: "{self.name}"', level=logging.INFO)
+
+        self.core_proprty_names = ['name', 'description', 'supportedactions',
+                                   'driverinfo', 'driverversion']
         self.properties = self.get_device_properties()
+        self.log(f'Connected to {self.device}: "{self.properties["name"]}"',
+                 level=logging.INFO)
 
 
     def get_device_properties(self):
         properties = {}
         if hasattr(self, 'property_names'):
-            for pname in self.property_names:
+            for pname in (self.core_proprty_names + self.property_names):
                 properties[pname] = self.get(pname)['Value']
-                self.log(f'{pname} = {properties[pname]}')
+                self.log(f'{pname} = {properties[pname]}', level=logging.INFO)
         return properties
 
 
@@ -67,14 +67,15 @@ class AlpacaDevice(object):
                 self.log(f'  ServerTransactionID: {j["ServerTransactionID"]}', level=logging.DEBUG)
                 self.log(f'  ErrorNumber: {j["ErrorNumber"]}', level=logging.DEBUG)
                 if j["ErrorNumber"] != 0:
-                    self.log(f'GET {command} failed', level=logging.WARNING)
+                    loglv = logging.WARNING if j["ErrorNumber"] != -2146233088 else logging.DEBUG
+                    self.log(f'GET {command} failed.  ErrorNumber {j["ErrorNumber"]}', level=loglv)
                     if type(j["ErrorMessage"]) == str:
                         lines = j["ErrorMessage"].split('\n')
-                        self.log(f'  ErrorMessage: {lines[0]}', level=logging.WARNING)
+                        self.log(f'  ErrorMessage: {lines[0]}', level=loglv)
                         for v in lines[1:]:
-                            self.log(f'                {v}', level=logging.WARNING)
+                            self.log(f'                {v}', level=loglv)
                     else:
-                        self.log(f'  ErrorMessage: {j["ErrorMessage"]}', level=logging.WARNING)
+                        self.log(f'  ErrorMessage: {j["ErrorMessage"]}', level=loglv)
 
                 if quiet is False and j["ErrorNumber"] == 0:
                     if type(j["Value"]) == str:
@@ -141,31 +142,6 @@ class AlpacaDevice(object):
 
     def get_connected(self):
         j = self.get('connected')
-        return j['Value']
-
-
-    def get_description(self):
-        j = self.get('description')
-        return j['Value']
-
-
-    def get_driverinfo(self):
-        j = self.get('driverinfo')
-        return j['Value']
-
-
-    def get_driverversion(self):
-        j = self.get('driverversion')
-        return j['Value']
-
-
-    def get_name(self):
-        j = self.get('name')
-        return j['Value']
-
-
-    def get_supportedactions(self):
-        j = self.get('supportedactions')
         return j['Value']
 
 
