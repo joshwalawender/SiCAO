@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+from astropy.io import fits
 
 from . import AlpacaDevice, AlpacaDeviceError
 

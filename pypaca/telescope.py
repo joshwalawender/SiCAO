@@ -1,6 +1,7 @@
 import logging
 
 import numpy as np
+from astropy.io import fits
 
 from . import AlpacaDevice, AlpacaDeviceError
 
@@ -29,6 +30,28 @@ class Telescope(AlpacaDevice):
         self.log(f"Slewing to {coord.to_string('hmsdms', sep=':', precision=1)}",
                  level=logging.INFO)
         self.slewtocoordinates(coord.ra.deg/15, coord.dec.deg)
+
+
+    def collect_header_metadata(self):
+        h = fits.Header()
+        h['TELNAME'] = (self.properties['name'],
+                        'Telescope Name')
+        h['TELDVRSN'] = (self.properties['driverversion'],
+                         'Telescope Driver Version')
+        h['ALT'] = (self.altitude(), 'Altitude (deg)')
+        h['AZ'] = (self.azimuth(), 'Azimuth (deg)')
+        if h['ALT'] > 0:
+            h['AIRMASS'] = (( np.sin( (h['ALT'] + 244/(165+47*h['ALT']))*np.pi/180 ) )**-1,
+                            'Airmass (Pickering, 2002 formula)')
+        else:
+            h['AIRMASS'] = (100, 'Airmass (low elevation)')
+        h['RA'] = (self.rightascension(), 'Right Ascension (hours)')
+        h['DEC'] = (self.declination(), 'Declination (deg)')
+        h['RARATE'] = (self.rightascensionrate(), 'Right Ascension Rate')
+        h['DECRATE'] = (self.declinationrate(), 'Declination Rate')
+        h['PIERSIDE'] = (self.sideofpier(), 'Side of Pier')
+        h['TRACKING'] = (self.tracking(), 'Tracking')
+        return h
 
 
     ##-------------------------------------------------------------------------
