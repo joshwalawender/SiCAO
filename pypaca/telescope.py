@@ -10,31 +10,29 @@ from . import AlpacaDevice, AlpacaDeviceError
 ##-------------------------------------------------------------------------
 class Telescope(AlpacaDevice):
     def __init__(self, **kwargs):
+        self.property_names = ['alignmentmode', 'aperturearea', 'aperturediameter',
+                               'canfindhome', 'canpark', 'canpulseguide',
+                               'cansetdeclinationrate', 'cansetguiderates',
+                               'cansetpark', 'cansetpierside',
+                               'cansetrightascensionrate', 'cansettracking',
+                               'canslew', 'canslewaltaz', 'canslewaltazasync',
+                               'canslewasync', 'cansync', 'cansyncaltaz',
+                               'equatorialsystem', 'focallength', 'trackingrates',
+                               'canmoveaxis',
+                               ]
         super().__init__(**kwargs, device='telescope')
-        self.alignmentmode = self.get('alignmentmode')['Value']
-        self.aperturearea = self.get('aperturearea')['Value']
-        self.aperturediameter = self.get('aperturediameter')['Value']
-        self.canfindhome = self.get('canfindhome')['Value']
-        self.canpark = self.get('canpark')['Value']
-        self.canpulseguide = self.get('canpulseguide')['Value']
-        self.cansetdeclinationrate = self.get('cansetdeclinationrate')['Value']
-        self.cansetguiderates = self.get('cansetguiderates')['Value']
-        self.cansetpark = self.get('cansetpark')['Value']
-        self.cansetpierside = self.get('cansetpierside')['Value']
-        self.cansetrightascensionrate = self.get('cansetrightascensionrate')['Value']
-        self.cansettracking = self.get('cansettracking')['Value']
-        self.canslew = self.get('canslew')['Value']
-        self.canslewaltaz = self.get('canslewaltaz')['Value']
-        self.canslewaltazasync = self.get('canslewaltazasync')['Value']
-        self.canslewasync = self.get('canslewasync')['Value']
-        self.cansync = self.get('cansync')['Value']
-        self.cansyncaltaz = self.get('cansyncaltaz')['Value']
-        self.equatorialsystem = self.get('equatorialsystem')['Value']
-        self.focallength = self.get('focallength')['Value']
-        self.trackingrates = self.get('trackingrates')['Value']
-        self.axisrates = self.get('axisrates')['Value']
-        self.canmoveaxis = self.get('canmoveaxis')['Value']
 
+
+    ##-------------------------------------------------------------------------
+    ## Required Methods for ObservatoryControlSystem
+    ##-------------------------------------------------------------------------
+    def slew(self, coord):
+        self.slewtocoordinates(coord.ra.deg/15, coord.dec.deg)
+
+
+    ##-------------------------------------------------------------------------
+    ## Alpaca Methods
+    ##-------------------------------------------------------------------------
     def altitude(self):
         return self.get('altitude')['Value']
 

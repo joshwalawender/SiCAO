@@ -10,51 +10,40 @@ from . import AlpacaDevice, AlpacaDeviceError
 
 
 ##-------------------------------------------------------------------------
-## AlpacaCamera Device
+## Camera Device
 ##-------------------------------------------------------------------------
 class Camera(AlpacaDevice):
     def __init__(self, **kwargs):
+        self.property_names = ['canabortexposure', 'canasymmetricbin',
+                               'canfastreadout', 'cangetcoolerpower',
+                               'canpulseguide', 'cansetccdtemperature',
+                               'canstopexposure', 'exposuremax', 'exposuremin',
+                               'exposureresolution', 'gainmax', 'gainmin',
+                               'gains', 'hasshutter', 'maxadu', 'maxbinx',
+                               'maxbiny', 'readoutmodes', 'bayeroffsetx',
+                               'bayeroffsety', 'fullwellcapacity', 'pixelsizex',
+                               'pixelsizey', 'sensorname', 'sensortype', 
+                               ]
         super().__init__(**kwargs, device='camera')
         # Initialize Properties
         self.exptime = 0
 
         # Populate fixed header for all exposures
         self.fixed_header = fits.Header()
-        self.fixed_header['BAYROFFX'] = (self.get('bayeroffsetx')['Value'],
+        self.fixed_header['BAYROFFX'] = (self.properties['bayeroffsetx'],
                                          'Bayer Offset X')
-        self.fixed_header['BAYROFFY'] = (self.get('bayeroffsety')['Value'],
+        self.fixed_header['BAYROFFY'] = (self.properties['bayeroffsety'],
                                          'Bayer Offset Y')
-        self.fixed_header['FULLWELL'] = (self.get('fullwellcapacity')['Value'],
+        self.fixed_header['FULLWELL'] = (self.properties['fullwellcapacity'],
                                          'Full Well Capcity')
-        self.fixed_header['PIXSIZEX'] = (self.get('pixelsizex')['Value'],
+        self.fixed_header['PIXSIZEX'] = (self.properties['pixelsizex'],
                                          'Pixel Size X')
-        self.fixed_header['PIXSIZEY'] = (self.get('pixelsizey')['Value'],
+        self.fixed_header['PIXSIZEY'] = (self.properties['pixelsizey'],
                                          'Pixel Size Y')
-        self.fixed_header['SENSNAME'] = (self.get('sensorname')['Value'],
+        self.fixed_header['SENSNAME'] = (self.properties['sensorname'],
                                          'Sensor Name')
-        self.fixed_header['SENSTYPE'] = (self.get('sensortype')['Value'],
+        self.fixed_header['SENSTYPE'] = (self.properties['sensortype'],
                                          'Sensor Type')
-        self.fixed_header['EXPTIME'] = (self.exptime, 'Exposure Time (sec)')
-
-        # Alpaca Capabilities
-        self.canabort = self.get('canabortexposure')['Value']
-        self.canasymmetricbin = self.get('canasymmetricbin')['Value']
-        self.canfastread = self.get('canfastreadout')['Value']
-        self.cangetcoolerpower = self.get('cangetcoolerpower')['Value']
-        self.canpulseguide = self.get('canpulseguide')['Value']
-        self.cansetccdtemperature = self.get('cansetccdtemperature')['Value']
-        self.canstopexposure = self.get('canstopexposure')['Value']
-        self.exposuremax = self.get('exposuremax')['Value']
-        self.exposuremin = self.get('exposuremin')['Value']
-        self.exposureresolution = self.get('exposureresolution')['Value']
-        self.gainmax = self.get('gainmax')['Value']
-        self.gainmin = self.get('gainmin')['Value']
-        self.gains = self.get('gains')['Value']
-        self.hasshutter = self.get('hasshutter')['Value']
-        self.maxadu = self.get('maxadu')['Value']
-        self.maxbinx = self.get('maxbinx')['Value']
-        self.maxbiny = self.get('maxbiny')['Value']
-        self.readoutmodes = self.get('readoutmodes')['Value']
 
 
     ##-------------------------------------------------------------------------

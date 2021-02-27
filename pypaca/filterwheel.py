@@ -11,9 +11,9 @@ from . import AlpacaDevice, AlpacaDeviceError
 ##-------------------------------------------------------------------------
 class FilterWheel(AlpacaDevice):
     def __init__(self, **kwargs):
+        self.property_names = ['focusoffsets', 'names']
         super().__init__(**kwargs, device='filterwheel')
-        self.focusoffsets = self.get('focusoffsets')['Value']
-        self.names = self.get('names')['Value']
+
 
     def position(self):
         pos = self.get('position')['Value']
@@ -23,6 +23,7 @@ class FilterWheel(AlpacaDevice):
             name = self.names[pos]
         self.log(f'Position Name = "{name}"')
         return pos, name
+
 
     def set_position(self, position):
         if type(position) == int:

@@ -10,12 +10,9 @@ from . import AlpacaDevice, AlpacaDeviceError
 ##-------------------------------------------------------------------------
 class Focuser(AlpacaDevice):
     def __init__(self, **kwargs):
+        self.property_names = ['absolute', 'maxincrement', 'maxstep',
+                               'stepsize', 'tempcompavailable']
         super().__init__(**kwargs, device='focuser')
-        self.absolute = self.get('absolute')['Value']
-        self.maxincrement = self.get('maxincrement')['Value']
-        self.maxstep = self.get('maxstep')['Value']
-        self.stepsize = self.get('stepsize')['Value']
-        self.tempcompavailable = self.get('tempcompavailable')['Value']
 
     def ismoving(self):
         return self.get('ismoving')['Value']

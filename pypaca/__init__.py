@@ -37,9 +37,20 @@ class AlpacaDevice(object):
         self.driverinfo = self.get_driverinfo()
         self.driverversion = self.get_driverversion()
         self.supportedactions = self.get_supportedactions()
+        self.log(f'Connected to {self.device}: "{self.name}"', level=logging.INFO)
+        self.properties = self.get_device_properties()
 
 
-    def log(self, msg, level=logging.INFO):
+    def get_device_properties(self):
+        properties = {}
+        if hasattr(self, 'property_names'):
+            for pname in self.property_names:
+                properties[pname] = self.get(pname)['Value']
+                self.log(f'{pname} = {properties[pname]}')
+        return properties
+
+
+    def log(self, msg, level=logging.DEBUG):
         if self.logger: self.logger.log(level, f"{self.device:>15s}: {msg}")
 
 
