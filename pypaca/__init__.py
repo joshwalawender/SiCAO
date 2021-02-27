@@ -46,7 +46,7 @@ class AlpacaDevice(object):
         if hasattr(self, 'property_names'):
             for pname in (self.core_proprty_names + self.property_names):
                 properties[pname] = self.get(pname)['Value']
-                self.log(f'{pname} = {properties[pname]}', level=logging.INFO)
+                self.log(f'{pname} = {properties[pname]}', level=logging.DEBUG)
         return properties
 
 
