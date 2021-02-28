@@ -47,8 +47,8 @@ class Telescope(AlpacaDevice):
             h['AIRMASS'] = (100, 'Airmass (low elevation)')
         h['RA'] = (self.rightascension(), 'Right Ascension (hours)')
         h['DEC'] = (self.declination(), 'Declination (deg)')
-        h['RARATE'] = (self.rightascensionrate(), 'Right Ascension Rate')
-        h['DECRATE'] = (self.declinationrate(), 'Declination Rate')
+        h['RARATE'] = (self.rightascensionrate(), 'Right Ascension Trim Rate')
+        h['DECRATE'] = (self.declinationrate(), 'Declination Trim Rate')
         h['PIERSIDE'] = (self.sideofpier(), 'Side of Pier')
         h['TRACKING'] = (self.tracking(), 'Tracking')
         return h
