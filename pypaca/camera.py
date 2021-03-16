@@ -97,6 +97,18 @@ class Camera(AlpacaDevice):
         self.detector.set_numx(int(x2)-int(x1))
         self.detector.set_numy(int(y2)-int(y1))
 
+
+    def setup_detector(self, dc):
+        '''Configure all settable parameters for the detector.
+        '''
+        if getattr(dc, 'exptime', None) is not None:
+            self.log(f'Setting exposure time to {dc.exptime:.3f}', level=logging.DEBUG)
+            self.set_exptime(dc.exptime)
+        if getattr(dc, 'gain', None) is not None:
+            self.log(f'Setting gain to {dc.gain:.1f}', level=logging.DEBUG)
+            self.set_gain(dc.gain)
+
+
     ##-------------------------------------------------------------------------
     ## Alpaca Methods
     ##-------------------------------------------------------------------------
